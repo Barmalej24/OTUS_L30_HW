@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
+using System.Net.Http;
 
 namespace OTUS_L30_HW
 {
@@ -9,37 +11,56 @@ namespace OTUS_L30_HW
         public void Download(string remoteUri)
         {
             string fileName = "bigimage.jpg";
-            var myWebClient = new WebClient();           
+            using var myWebClient = new WebClient();
 
-            this.ImageStarted!.Invoke();
+            if (this.ImageStarted != null)
+            {
+                ImageStarted.Invoke();
+            }
 
             myWebClient.DownloadFile(remoteUri, fileName);
-            
-            this.ImageCompleted!.Invoke();   
+
+            if (this.ImageStarted != null)
+            {
+                ImageStarted.Invoke();
+            }
         }
 
-        public async Task DownloadAsync(string remoteUri)
+        public async Task DownloadAsync(string remoteUri, CancellationToken cancellationToken)
         {
             var random = new Random();
             var i = random.Next();
-
             string fileName = $"bigimage{i}.jpg";
-            var myWebClient = new WebClient();
+            using var httpClient = new HttpClient();
 
-            this.ImageStarted!.Invoke();
+            if (this.ImageStarted != null)
+            {
+                ImageStarted!.Invoke();
+            }
 
-            await myWebClient.DownloadFileTaskAsync(remoteUri, fileName);
+            using (var response = await httpClient.GetAsync(remoteUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+            {
+                response.EnsureSuccessStatusCode();
+                using var fileStream = File.Create(fileName);
+                using var httpStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                await httpStream.CopyToAsync(fileStream, cancellationToken);
+            }
 
-            this.ImageCompleted!.Invoke();
+            if (this.ImageStarted != null)
+            {
+                ImageCompleted!.Invoke();
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
-        public void Subscribe(ImageDownloader image)
+        public void Subscribe()
         {
-            image.ImageStarted += () =>
+            this.ImageStarted += () =>
             {
                 Console.WriteLine("Скачивание файла началось");
             };
-            image.ImageCompleted += () =>
+            this.ImageCompleted += () =>
             {
                 Console.WriteLine("Скачивание файла закончилось");
             };

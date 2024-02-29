@@ -26,12 +26,14 @@ namespace OTUS_L30_HW
 
         private static void Method45(string remoteUri)
         {
+            using var cts = new CancellationTokenSource();
             var tasks = new List<Task>();
+
             for (int i = 1; i <= 10; i++)
             {
                 var imageDownloader = new ImageDownloader();
-                imageDownloader.Subscribe(imageDownloader);
-                tasks.Add(imageDownloader.DownloadAsync(remoteUri));
+                imageDownloader.Subscribe();
+                tasks.Add(imageDownloader.DownloadAsync(remoteUri, cts.Token));
             }
             Console.WriteLine("Нажмите клавишу A для выхода или любую другую клавишу для проверки статуса скачивания");
             var key = Console.ReadKey();
@@ -39,6 +41,7 @@ namespace OTUS_L30_HW
             {
                 if (key.Key == ConsoleKey.A)
                 {
+                    cts.Cancel();
                     return;
                 }
                 else
@@ -57,7 +60,7 @@ namespace OTUS_L30_HW
         private static void Method13(string remoteUri)
         {
             var imageDownloader = new ImageDownloader();
-            imageDownloader.Subscribe(imageDownloader);
+            imageDownloader.Subscribe();
             imageDownloader.Download(remoteUri);
             Console.WriteLine("Нажмите любую клавишу для выхода");
             Console.ReadKey();
